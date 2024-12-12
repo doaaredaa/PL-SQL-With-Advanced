@@ -1,0 +1,360 @@
+Packages Lab
+-- 1. Create a package specification and body called LOC_PKG, containing a copy of your ADD_LOC procedure and Query_LOC, function as well as your GET_LOC function.
+
+  -- Header
+CREATE OR REPLACE PACKAGE LOC_PKG
+IS
+PROCEDURE ADD_LOC (V_LOCATION_ID NUMBER, V_STREET_ADDRESS VARCHAR2,
+V_POSTAL_CODE VARCHAR2, V_CITY VARCHAR2, V_STATE_PROVINCE VARCHAR2,
+V_COUNTRY_ID CHAR);
+FUNCTION Query_loc(v_LOCATION_ID number)
+return varchar2;
+FUNCTION GET_LOC (v_CITY out varchar2 , v_LOCATION_ID number)
+return varchar2;
+END;
+-- drop standalone functions / procedures
+--DROP PROCEDURE ADD_LOC;
+--DROP FUNCTION Query_loc;
+--DROP FUNCTION GET_LOC;
+-----------------------------------------------------------------
+-- Body
+CREATE OR REPLACE PACKAGE BODY LOC_PKG
+IS
+-- 1.
+  
+PROCEDURE ADD_LOC (V_LOCATION_ID NUMBER, V_STREET_ADDRESS VARCHAR2,
+V_POSTAL_CODE VARCHAR2, V_CITY VARCHAR2, V_STATE_PROVINCE VARCHAR2,
+V_COUNTRY_ID CHAR)
+is
+begin
+ INSERT INTO LOCATIONS ( LOCATION_ID, STREET_ADDRESS, POSTAL_CODE, CITY,
+STATE_PROVINCE, COUNTRY_ID)
+ VALUES (V_LOCATION_ID, V_STREET_ADDRESS, V_POSTAL_CODE, V_CITY, V_STATE_PROVINCE,
+V_COUNTRY_ID);
+end;
+-- 2.
+
+FUNCTION Query_loc(v_LOCATION_ID number) return varchar2
+is
+ v_all varchar2(3000);
+begin
+ select r.Region_Name ||', '||c.Country_Name ||' ,'|| l.LOCATION_ID || ', ' || l.STREET_ADDRESS || ',
+' || l.POSTAL_CODE || ', ' || l.CITY
+ into v_all
+ from Locations l , Countries c , regions r
+ where l.LOCATION_ID= v_LOCATION_ID
+ and L.COUNTRY_ID =C.COUNTRY_ID
+ and C.REGION_ID =R.REGION_ID;
+
+ return v_all;
+
+end;
+
+-- 3.
+FUNCTION GET_LOC (v_CITY out varchar2 , v_LOCATION_ID number) return varchar2
+is v_STREET_ADDRESS varchar2(40);
+begin
+ select STREET_ADDRESS, CITY
+ into v_STREET_ADDRESS, v_CITY
+ from locations
+ where LOCATION_ID=v_LOCATION_ID;
+ return v_STREET_ADDRESS;
+
+end;
+END;
+-----------------------------------------------------------------
+-- Calling
+SET serveroutput on
+DECLARE
+ COUNTRY_ID_EXCEPTION exception;
+ pragma exception_init(COUNTRY_ID_EXCEPTION, -02284);
+ result varchar2(32767);
+ v_result varchar2(50); v_CITY varchar2(50);
+
+BEGIN
+ LOC_PKG.ADD_LOC (V_LOCATION_ID=> 999, V_STREET_ADDRESS=>'9450 Kamiya-cho' ,
+V_POSTAL_CODE =>6828, V_CITY => 'Tokyo', V_STATE_PROVINCE=>'Tokyo Prefecture' ,
+V_COUNTRY_ID=>98);
+ DBMS_OUTPUT.PUT_LINE('Data is Inserted successfully! ');
+ EXCEPTION
+ WHEN COUNTRY_ID_EXCEPTION THEN
+ DBMS_OUTPUT.PUT_LINE('Please Enter a Valid Data! ');
+ WHEN OTHERS THEN
+ DBMS_OUTPUT.PUT_LINE('Invalid Data! ');
+ ----------------------------------
+ result:=LOC_PKG.Query_loc(1000);
+ DBMS_OUTPUT.PUT_LINE( 'The Data fro certin Location: ' || result );
+ -----------------------------
+ v_result:=LOC_PKG.GET_LOC(v_CITY,1000);
+ DBMS_OUTPUT.PUT_LINE( 'Result: ' || v_result );
+END;
+
+-- 2. Copy and modify the code for the LOC_PKG package that you created and overload the ADD_LOC procedure. As you can insert only city only, and use sequence to insert location_id.
+
+-- Header
+CREATE OR REPLACE PACKAGE LOC_PKG
+IS
+PROCEDURE ADD_LOC (V_LOCATION_ID NUMBER, V_STREET_ADDRESS VARCHAR2,
+V_POSTAL_CODE VARCHAR2, V_CITY VARCHAR2, V_STATE_PROVINCE VARCHAR2,
+V_COUNTRY_ID CHAR);
+FUNCTION Query_loc(v_LOCATION_ID number)
+return varchar2;
+FUNCTION GET_LOC (v_CITY out varchar2 , v_LOCATION_ID number)
+return varchar2;
+PROCEDURE ADD_LOC (V_CITY VARCHAR2);
+END;
+-----------------------------------------------------------------
+-- Body
+CREATE OR REPLACE PACKAGE BODY LOC_PKG
+IS
+  
+-- 1.
+PROCEDURE ADD_LOC (V_LOCATION_ID NUMBER, V_STREET_ADDRESS VARCHAR2,
+V_POSTAL_CODE VARCHAR2, V_CITY VARCHAR2, V_STATE_PROVINCE VARCHAR2,
+V_COUNTRY_ID CHAR)
+is
+begin
+ INSERT INTO LOCATIONS ( LOCATION_ID, STREET_ADDRESS, POSTAL_CODE, CITY,
+STATE_PROVINCE, COUNTRY_ID)
+ VALUES (V_LOCATION_ID, V_STREET_ADDRESS, V_POSTAL_CODE, V_CITY, V_STATE_PROVINCE,
+V_COUNTRY_ID);
+end;
+
+-- 2.
+FUNCTION Query_loc(v_LOCATION_ID number) return varchar2
+is
+ v_all varchar2(3000);
+begin
+ select r.Region_Name ||', '||c.Country_Name ||' ,'|| l.LOCATION_ID || ', ' || l.STREET_ADDRESS || ',
+' || l.POSTAL_CODE || ', ' || l.CITY
+ into v_all
+ from Locations l , Countries c , regions r
+ where l.LOCATION_ID= v_LOCATION_ID
+ and L.COUNTRY_ID =C.COUNTRY_ID
+ and C.REGION_ID =R.REGION_ID;
+
+ return v_all;
+
+end;
+
+-- 3.
+FUNCTION GET_LOC (v_CITY out varchar2 , v_LOCATION_ID number) return varchar2
+is v_STREET_ADDRESS varchar2(40);
+begin
+ select STREET_ADDRESS, CITY
+ into v_STREET_ADDRESS, v_CITY
+ from locations
+ where LOCATION_ID=v_LOCATION_ID;
+ return v_STREET_ADDRESS;
+
+end;
+
+-- 4.
+PROCEDURE ADD_LOC (V_CITY VARCHAR2)
+is
+begin
+ INSERT INTO LOCATIONS ( LOCATION_ID, CITY)
+ VALUES (DEPT_ID_SEQ.nextval, V_CITY);
+end;
+END;
+show errors
+-----------------------------------------------------------------
+-- Calling
+SET serveroutput on
+DECLARE
+ COUNTRY_ID_EXCEPTION exception;
+ pragma exception_init(COUNTRY_ID_EXCEPTION, -02284);
+ COUNTRYY_ID_EXCEPTION exception;
+ pragma exception_init(COUNTRYY_ID_EXCEPTION, -02265);
+
+ result varchar2(32767);
+ v_result varchar2(50);
+ v_CITY varchar2(50);
+
+
+BEGIN
+-- Call to ADD_LOC------------------------------
+ LOC_PKG.ADD_LOC(V_LOCATION_ID=> 999, V_STREET_ADDRESS=>'9450 Kamiya-cho' ,
+V_POSTAL_CODE =>6828, V_CITY => 'Tokyo', V_STATE_PROVINCE=>'Tokyo Prefecture' ,
+V_COUNTRY_ID=>98);
+ DBMS_OUTPUT.PUT_LINE('Data is Inserted successfully! ');
+-- Call to Query_LOC----------------------------
+ result:=LOC_PKG.Query_loc(1000);
+ DBMS_OUTPUT.PUT_LINE( 'The Data fro certin Location: ' || result );
+-- Call to GET_LOC---------------------------------
+ v_result:=LOC_PKG.GET_LOC(v_CITY,1000);
+ DBMS_OUTPUT.PUT_LINE( 'Result: ' || v_result );
+ ----------------------------
+ LOC_PKG.ADD_LOC (V_CITY => 'Tokyo');
+ DBMS_OUTPUT.PUT_LINE('Data is Inserted successfully! ');
+-----------------------------------------------------------------------------------
+ EXCEPTION
+ WHEN COUNTRY_ID_EXCEPTION THEN
+ DBMS_OUTPUT.PUT_LINE('Please Enter a Valid Data! ');
+
+ WHEN COUNTRYY_ID_EXCEPTION THEN
+ DBMS_OUTPUT.PUT_LINE('Please Enter a Valid Data! ');
+
+ WHEN OTHERS THEN
+ DBMS_OUTPUT.PUT_LINE('Invalid Data! ');
+END;
+show errors
+
+-----------------------------  
+-- 3. Create a package specification and body called DEPT_PKG, be creating ADD_DEPT ( 4 params ) , UPD_DEPT ( 4 params ), and DEL_DEPT(1 param) procedures as well as your GET_DEPT
+-- function( 1 param ) return dept_name only
+
+CREATE OR REPLACE PACKAGE DEPT_PKG
+IS
+PROCEDURE ADD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER);
+PROCEDURE UPD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER);
+PROCEDURE DEL_DEPT(V_DEPARTMENT_ID NUMBER);
+FUNCTION GET_DEPT(V_DEPARTMENT_ID NUMBER) RETURN VARCHAR2;
+END;
+SHOW ERRORS
+--DROP PROCEDURE ADD_DEPT;
+--DROP PROCEDURE UPD_DEPT;
+--DROP PROCEDURE DEL_DEPT;
+--DROP FUNCTION GET_DEPT;
+---------------------------------------
+SET serveroutput on
+CREATE OR REPLACE PACKAGE BODY DEPT_PKG
+IS
+PROCEDURE ADD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER)
+IS
+BEGIN
+ INSERT INTO DEPARTMENTS (DEPARTMENT_ID, DEPARTMENT_NAME, MANAGER_ID,
+LOCATION_ID)
+ VALUES (V_DEPARTMENT_ID, V_DEPARTMENT_NAME, V_MANAGER_ID, V_LOCATION_ID);
+END;
+--------------------------
+PROCEDURE UPD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER)
+IS
+BEGIN
+ UPDATE DEPARTMENTS
+ SET DEPARTMENT_NAME=V_DEPARTMENT_NAME,
+ MANAGER_ID=V_MANAGER_ID,
+ LOCATION_ID=V_LOCATION_ID
+ WHERE DEPARTMENT_ID= V_DEPARTMENT_ID;
+END;
+---------------------------------
+PROCEDURE DEL_DEPT(V_DEPARTMENT_ID NUMBER)
+IS
+BEGIN
+ DELETE FROM DEPARTMENTS
+ WHERE DEPARTMENT_ID=V_DEPARTMENT_ID;
+END;
+------------------------------------
+FUNCTION GET_DEPT(V_DEPARTMENT_ID NUMBER) RETURN VARCHAR2
+IS V_DEPARTMENT_NAME VARCHAR2(30);
+BEGIN
+ SELECT DEPARTMENT_NAME
+ INTO V_DEPARTMENT_NAME
+ FROM DEPARTMENTS
+ WHERE DEPARTMENT_ID=V_DEPARTMENT_ID;
+ RETURN V_DEPARTMENT_NAME;
+END;
+END;
+SHOW ERRORS
+---------------------------------
+SET serveroutput on
+DECLARE
+ YOUR_DEP VARCHAR2(30);
+
+BEGIN
+ DEPT_PKG.ADD_DEPT(700,'PL-SQL',121,1700);
+ DEPT_PKG.UPD_DEPT(70,'PL-SQL',200,1700);
+ DEPT_PKG.DEL_DEPT(700);
+ YOUR_DEP:=DEPT_PKG.GET_DEPT(70);
+ DBMS_OUTPUT.PUT_LINE('YOUR DEP IS: ' || YOUR_DEP );
+END;
+
+-- 4. Modify DEPT_PKG by adding GET_DEPT function overloading that accepts DEPT_name, and return %departments row type.
+
+CREATE OR REPLACE PACKAGE DEPT_PKG
+IS
+PROCEDURE ADD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER);
+PROCEDURE UPD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER);
+PROCEDURE DEL_DEPT(V_DEPARTMENT_ID NUMBER);
+FUNCTION GET_DEPT(V_DEPARTMENT_ID NUMBER) RETURN VARCHAR2;
+FUNCTION GET_DEPT(v_DEPARTMENT_NAME VARCHAR2 ) RETURN DEPARTMENTS%rowtype;
+END; SHOW ERRORS
+SET serveroutput on
+CREATE OR REPLACE PACKAGE BODY DEPT_PKG
+IS
+PROCEDURE ADD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER)
+IS
+BEGIN
+ INSERT INTO DEPARTMENTS (DEPARTMENT_ID, DEPARTMENT_NAME, MANAGER_ID,
+LOCATION_ID)
+ VALUES (V_DEPARTMENT_ID, V_DEPARTMENT_NAME, V_MANAGER_ID, V_LOCATION_ID);
+END;
+------------------------
+PROCEDURE UPD_DEPT(V_DEPARTMENT_ID NUMBER, V_DEPARTMENT_NAME VARCHAR2,
+V_MANAGER_ID NUMBER, V_LOCATION_ID NUMBER)
+IS
+BEGIN
+ UPDATE DEPARTMENTS
+ SET DEPARTMENT_NAME=V_DEPARTMENT_NAME,
+ MANAGER_ID=V_MANAGER_ID,
+ LOCATION_ID=V_LOCATION_ID
+ WHERE DEPARTMENT_ID= V_DEPARTMENT_ID;
+END;
+---------------------------
+PROCEDURE DEL_DEPT(V_DEPARTMENT_ID NUMBER)
+IS
+BEGIN
+ DELETE FROM DEPARTMENTS
+ WHERE DEPARTMENT_ID=V_DEPARTMENT_ID;
+END;
+-------------------------------
+FUNCTION GET_DEPT(V_DEPARTMENT_ID NUMBER) RETURN VARCHAR2
+IS V_DEPARTMENT_NAME VARCHAR2(30);
+BEGIN
+ SELECT DEPARTMENT_NAME
+ INTO V_DEPARTMENT_NAME
+ FROM DEPARTMENTS
+ WHERE DEPARTMENT_ID=V_DEPARTMENT_ID;
+ RETURN V_DEPARTMENT_NAME;
+END;
+-----------------------------
+FUNCTION GET_DEPT(v_DEPARTMENT_NAME VARCHAR2 ) RETURN DEPARTMENTS%rowtype
+IS v_dep_record DEPARTMENTS%rowtype;
+BEGIN
+ select *
+ into v_dep_record
+ from DEPARTMENTS
+ where DEPARTMENT_NAME=v_DEPARTMENT_NAME;
+ return v_dep_record;
+END;
+END;
+SHOW ERRORS
+----------------------------
+SET serveroutput on
+DECLARE
+ YOUR_DEP VARCHAR2(30);
+ v_dep_record DEPARTMENTS%rowtype;
+ YOUR_DEP_DATA VARCHAR2(200);
+
+BEGIN
+ DEPT_PKG.ADD_DEPT(700,'PL-SQL',121,1700);
+ DEPT_PKG.UPD_DEPT(70,'PL-SQL',200,1700);
+ DEPT_PKG.DEL_DEPT(700);
+ YOUR_DEP:=DEPT_PKG.GET_DEPT(70);
+ DBMS_OUTPUT.PUT_LINE('YOUR DEP IS: ' || YOUR_DEP );
+ ---------
+ v_dep_record:=DEPT_PKG.GET_DEPT('Administration');
+ YOUR_DEP_DATA:= 'DEPARTMENT_ID: '|| v_dep_record.DEPARTMENT_ID ||
+ ' ,DEPARTMENT_NAME: ' ||v_dep_record.DEPARTMENT_NAME ||
+ ' ,MANAGER_ID: ' ||v_dep_record.MANAGER_ID ||
+ ' ,LOCATION_ID: ' ||v_dep_record.LOCATION_ID;
+
+ DBMS_OUTPUT.PUT_LINE('YOUR DATA IS: ' || YOUR_DEP_DATA );
+END;
